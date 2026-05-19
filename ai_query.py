@@ -4,177 +4,109 @@ import yt_dlp
 
 
 # ============================================
-# BAD VIDEO WORDS
+# YOUTUBE SEARCH LAYER
 # ============================================
-
-BAD_WORDS = [
-
-    "highlight",
-
-    "reaction",
-
-    "interview",
-
-    "trailer",
-
-    "gameplay",
-
-    "live stream",
-
-    "stream",
-
-    "tutorial",
-
-    "news",
-
-    "analysis",
-
-    "press conference",
-
-    "match",
-
-    "vs",
-
-    "full movie"
-]
-
-
-# ============================================
-# GOOD MUSIC WORDS
-# ============================================
-
-GOOD_WORDS = [
-
-    "audio",
-
-    "lyrics",
-
-    "lyric",
-
-    "music",
-
-    "song",
-
-    "topic"
-]
-
-
-# ============================================
-# SEARCH
+#
+# This module performs YouTube music search
+# using yt-dlp.
+#
+# IMPORTANT:
+# This module only performs:
+#
+# - search
+# - metadata extraction
+# - result ranking
+#
+# It does NOT:
+#
+# - download audio
+# - play music
+# - perform AI analysis
+#
 # ============================================
 
 def search(query):
 
+    """
+    Search YouTube using a semantic query.
+
+    Returns:
+        List of:
+            [(url, title), ...]
+    """
+
+    print("\nSearching YouTube...")
+
+    # ====================================
+    # YT-DLP SEARCH CONFIGURATION
+    # ====================================
+
     ydl_opts = {
 
-        # IMPORTANT
-        # search more results
-
+        # search top 10 candidates
         "default_search": "ytsearch10",
 
+        # suppress console spam
         "quiet": True,
 
+        # metadata only
         "skip_download": True,
 
+        # avoid full playlist extraction
         "noplaylist": True
     }
 
-    results = []
-
     try:
+
+        # ====================================
+        # SEARCH YOUTUBE
+        # ====================================
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
-            info = ydl.extract_info(query, download=False)
+            info = ydl.extract_info(
 
-            if not info:
-                return []
+                query,
 
-            entries = info.get("entries", [])
-
-            # ====================================
-            # FILTER RESULTS
-            # ====================================
-
-            for entry in entries:
-
-                title = entry.get("title", "")
-
-                url = entry.get("url", "")
-
-                lower_title = title.lower()
-
-                # ====================================
-                # SKIP BAD RESULTS
-                # ====================================
-
-                skip = False
-
-                for bad in BAD_WORDS:
-
-                    if bad in lower_title:
-
-                        skip = True
-
-                        break
-
-                if skip:
-                    continue
-
-                # ====================================
-                # MUSIC SCORE
-                # ====================================
-
-                score = 0
-
-                for good in GOOD_WORDS:
-
-                    if good in lower_title:
-
-                        score += 1
-
-                # ====================================
-                # save
-                # ====================================
-
-                results.append({
-
-                    "url": url,
-
-                    "title": title,
-
-                    "score": score
-                })
-
-            # ====================================
-            # SORT BY SCORE
-            # ====================================
-
-            results.sort(
-
-                key=lambda x: x["score"],
-
-                reverse=True
+                download=False
             )
 
-            # ====================================
-            # FINAL RESULTS
-            # ====================================
+        # ====================================
+        # EXTRACT SEARCH RESULTS
+        # ====================================
 
-            final_results = []
+        entries = info.get("entries", [])
 
-            for r in results:
+        results = []
 
-                final_results.append(
+        for entry in entries:
 
-                    (r["url"], r["title"])
-                )
+            if not entry:
 
-            return final_results
+                continue
+
+            title = entry.get("title")
+
+            url = entry.get("webpage_url")
+
+            # skip invalid results
+            if not title or not url:
+
+                continue
+
+            results.append(
+
+                (url, title)
+            )
+
+        print(f"\nFound {len(results)} results")
+
+        return results
 
     except Exception as e:
 
         print("\nYouTube search failed")
+
         print(e)
 
         return []

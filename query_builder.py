@@ -3,20 +3,51 @@
 import json
 
 
+# ============================================
+# BUILD SEARCH QUERY
+# ============================================
+#
+# Convert AI semantic JSON output
+# into a simplified YouTube search query.
+#
+# The AI layer extracts semantic meaning,
+# while this module focuses only on
+# search optimization.
+#
+# IMPORTANT:
+# Mood-related fields are intentionally
+# excluded because they reduce
+# YouTube search stability.
+#
+# ============================================
+
 def build_query(ai_result):
 
+    """
+    Build a simplified YouTube search query
+    from AI semantic parsing results.
+    """
+
     # ====================================
-    # remove markdown
+    # REMOVE MARKDOWN WRAPPER
     # ====================================
 
-    ai_result = ai_result.replace("```json", "")
+    ai_result = ai_result.replace(
 
-    ai_result = ai_result.replace("```", "")
+        "```json",
+        ""
+    )
+
+    ai_result = ai_result.replace(
+
+        "```",
+        ""
+    )
 
     ai_result = ai_result.strip()
 
     # ====================================
-    # json -> dict
+    # JSON STRING → PYTHON DICTIONARY
     # ====================================
 
     data = json.loads(ai_result)
@@ -24,8 +55,19 @@ def build_query(ai_result):
     parts = []
 
     # ====================================
-    # IMPORTANT:
-    # ONLY KEEP CORE SEARCH ENTITIES
+    # CORE SEARCH ENTITIES ONLY
+    # ====================================
+    #
+    # Keep only stable search keywords.
+    #
+    # Avoid:
+    # - mood
+    # - emotional descriptions
+    # - long semantic phrases
+    #
+    # because they negatively affect
+    # YouTube search quality.
+    #
     # ====================================
 
     if data.get("artist"):
@@ -49,7 +91,7 @@ def build_query(ai_result):
         parts.append(str(data["year"]))
 
     # ====================================
-    # final query
+    # FINAL SEARCH QUERY
     # ====================================
 
     return " ".join(parts)

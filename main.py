@@ -1,47 +1,42 @@
 # main.py
 
+import os
+import time
+import serial
 import threading
 import yt_dlp
-import os
+
 import state
-import serial
-import time
 
 from voice import listen
+
 from semantic_ai import analyze_text
+
 from query_builder import build_query
+
 from ai_query import search
-from music import create_player, play
+
 from rhythm import analyze_energy
+
 from led_engine import drive_led
 
-
-# ============================================
-# GLOBAL STATE
-# ============================================
-
-state.playlist = []
-state.current_index = 0
-
-state.is_stopped = False
-
-state.music_playing = False
-
-# IMPORTANT
-# controls when microphone should open
-
-state.listen_requested = True
-
-
-# ============================================
-# SERIAL
-# ============================================
-
-ser = None
+from music import (
+    create_player,
+    play,
+    stop
+)
 
 
 # ============================================
 # DOWNLOAD AUDIO
+# ============================================
+#
+# Download audio-only content from YouTube.
+#
+# Audio files are temporarily stored inside:
+#
+#     temp/
+#
 # ============================================
 
 def download_audio(title):
@@ -50,32 +45,34 @@ def download_audio(title):
 
     ydl_opts = {
 
-        "format": "bestaudio",
+        # audio only
+        "format": "bestaudio[ext=m4a]/bestaudio",
 
+        # output filename
         "outtmpl": "temp/%(id)s.%(ext)s",
 
+        # reduce console spam
         "quiet": True,
 
+        # avoid playlist extraction
         "noplaylist": True,
 
-        "default_search": "ytsearch1",
-
-        "ignoreerrors": True
+        # search only first result
+        "default_search": "ytsearch1"
     }
 
     try:
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
-            info = ydl.extract_info(title, download=True)
+            info = ydl.extract_info(
 
-            if not info:
-                return None
+                title,
 
-            if "entries" in info:
-                entry = info["entries"][0]
-            else:
-                entry = info
+                download=True
+            )
+
+            entry = info["entries"][0]
 
             filepath = ydl.prepare_filename(entry)
 
@@ -84,88 +81,36 @@ def download_audio(title):
     except Exception as e:
 
         print("\nDownload failed")
+
         print(e)
 
         return None
 
 
 # ============================================
-# LED HELPERS
-# ============================================
-
-def led_music_start():
-
-    global ser
-
-    if ser:
-
-        ser.write(b'M')
-
-
-def led_music_stop():
-
-    global ser
-
-    if ser:
-
-        ser.write(b'S')
-
-
-# ============================================
-# SERIAL LISTENER THREAD
-# ============================================
-
-def serial_listener():
-
-    global ser
-
-    while True:
-
-        try:
-
-            if ser.in_waiting:
-
-                line = ser.readline().decode().strip()
-
-                print("\n[ARDUINO EVENT]")
-                print(line)
-
-                # ====================================
-                # BUTTON INTERRUPT
-                # ====================================
-
-                if line == "MIC":
-
-                    print("\nMIC INTERRUPT")
-
-                    # stop everything
-
-                    state.is_stopped = True
-
-                    state.music_playing = False
-
-                    led_music_stop()
-
-                    state.player.stop()
-
-                    # request microphone
-
-                    state.listen_requested = True
-
-        except Exception as e:
-
-            print("\nSerial listener error")
-            print(e)
-
-
-# ============================================
 # PLAY SONG
 # ============================================
+#
+# Full playback pipeline:
+#
+# download
+#     →
+# analyze energy
+#     →
+# start LED thread
+#     →
+# play music
+#
+# ============================================
 
-def play_song(title):
+def play_song(title, ser):
 
     print("\nNow Playing:")
     print(title)
+
+    # ====================================
+    # DOWNLOAD AUDIO
+    # ====================================
 
     filepath = download_audio(title)
 
@@ -173,27 +118,17 @@ def play_song(title):
 
         print("\nDownload failed")
 
-        state.listen_requested = True
-
         return
+
+    # ====================================
+    # PLAYBACK CANCEL CHECK
+    # ====================================
 
     if state.is_stopped:
 
         print("\nPlayback cancelled")
 
-        state.listen_requested = True
-
         return
-
-    # ====================================
-    # ENTER MUSIC MODE
-    # ====================================
-
-    state.music_playing = True
-
-    state.listen_requested = False
-
-    led_music_start()
 
     # ====================================
     # ANALYZE AUDIO ENERGY
@@ -202,7 +137,13 @@ def play_song(title):
     energy_list = analyze_energy(filepath)
 
     # ====================================
-    # START LED THREAD
+    # ENABLE MUSIC STATE
+    # ====================================
+
+    state.music_playing = True
+
+    # ====================================
+    # START LED REACTIVE THREAD
     # ====================================
 
     threading.Thread(
@@ -216,7 +157,13 @@ def play_song(title):
     ).start()
 
     # ====================================
-    # PLAY MUSIC
+    # NOTIFY ARDUINO
+    # ====================================
+
+    ser.write(b'M')
+
+    # ====================================
+    # PLAY AUDIO
     # ====================================
 
     play(state.player, filepath)
@@ -227,90 +174,109 @@ def play_song(title):
 
     state.music_playing = False
 
-    led_music_stop()
+    ser.write(b'S')
 
-    # reopen microphone automatically
-
-    state.listen_requested = True
+    print("\nMusic finished")
 
 
 # ============================================
-# NEXT SONG
+# SERIAL LISTENER
+# ============================================
+#
+# Listen for Arduino interrupt events.
+#
+# Example:
+#
+# MIC
+#     →
+# stop playback
+#     →
+# reopen microphone
+#
 # ============================================
 
-def next_song():
+def serial_listener(ser):
 
-    state.current_index += 1
+    while True:
 
-    if state.current_index >= len(state.playlist):
+        try:
 
-        print("\nNo more songs")
+            line = (
 
-        state.listen_requested = True
+                ser.readline()
 
-        return
+                .decode()
 
-    state.is_stopped = False
+                .strip()
+            )
 
-    state.music_playing = False
+            if line == "MIC":
 
-    led_music_stop()
+                print("\nMIC interrupt received")
 
-    state.player.stop()
+                # stop playback
+                state.music_playing = False
 
-    url, title = state.playlist[state.current_index]
+                state.is_stopped = True
 
-    threading.Thread(
+                stop(state.player)
 
-        target=play_song,
+                # reopen listening
+                state.listen_requested = True
 
-        args=(title,),
+        except Exception as e:
 
-        daemon=True
+            print("\nSerial listener error")
 
-    ).start()
+            print(e)
 
 
 # ============================================
-# MAIN
+# MAIN SYSTEM LOOP
 # ============================================
 
 def main():
-
-    global ser
 
     print("\n==========================")
     print(" AI Voice Music System ")
     print("==========================\n")
 
     # ====================================
-    # PLAYER
+    # CREATE AUDIO PLAYER
     # ====================================
 
     state.player = create_player()
 
     # ====================================
-    # SERIAL
+    # OPEN SERIAL PORT
     # ====================================
 
-    ser = serial.Serial("COM3", 9600)
+    ser = serial.Serial(
 
+        "COM3",
+
+        9600
+    )
+
+    # allow Arduino reset
     time.sleep(2)
 
     # ====================================
-    # SERIAL THREAD
+    # START SERIAL THREAD
     # ====================================
 
     threading.Thread(
 
         target=serial_listener,
 
+        args=(ser,),
+
         daemon=True
 
     ).start()
 
     # ====================================
-    # MAIN LOOP
+    # MAIN EVENT LOOP
     # ====================================
 
     while True:
@@ -325,120 +291,63 @@ def main():
 
             continue
 
+        # ====================================
+        # RESET STATES
+        # ====================================
+
+        state.listen_requested = False
+
+        state.is_stopped = False
+
+        # ====================================
+        # START MICROPHONE
+        # ====================================
+
         print("\n🎤 Listening...\n")
 
         text = listen()
 
         if not text:
 
-            continue
-
-        print("\nYou said:")
-        print(text)
-
-        text = text.lower().strip()
-
-        # microphone request consumed
-
-        state.listen_requested = False
-
-        # ====================================
-        # STOP
-        # ====================================
-
-        if text == "stop":
-
-            print("\nStopping playback...")
-
-            state.is_stopped = True
-
-            state.music_playing = False
-
-            led_music_stop()
-
-            state.player.stop()
+            print("\nNo speech detected")
 
             state.listen_requested = True
 
             continue
 
-        # ====================================
-        # NEXT
-        # ====================================
+        print("You said:")
 
-        if text == "next":
-
-            print("\nNext song...")
-
-            next_song()
-
-            continue
+        print(text)
 
         # ====================================
-        # NEW MUSIC REQUEST
+        # AI SEMANTIC ANALYSIS
         # ====================================
-
-        state.is_stopped = False
-
-        state.music_playing = False
-
-        led_music_stop()
-
-        state.player.stop()
 
         print("\nAI semantic parsing...\n")
 
-        try:
+        ai_result = analyze_text(text)
 
-            ai_result = analyze_text(text)
-
-            print(ai_result)
-
-        except Exception as e:
-
-            print("\nAI failed")
-            print(e)
+        if not ai_result:
 
             state.listen_requested = True
 
             continue
 
         # ====================================
-        # BUILD QUERY
+        # BUILD SEARCH QUERY
         # ====================================
 
-        try:
+        query = build_query(ai_result)
 
-            query = build_query(ai_result)
+        print("\nFinal Query:")
 
-            print("\nFinal Query:")
-            print(query)
-
-        except Exception as e:
-
-            print("\nQuery build failed")
-            print(e)
-
-            state.listen_requested = True
-
-            continue
+        print(query)
 
         # ====================================
-        # SEARCH
+        # SEARCH YOUTUBE
         # ====================================
 
-        try:
-
-            results = search(query)
-
-        except Exception as e:
-
-            print("\nSearch failed")
-            print(e)
-
-            state.listen_requested = True
-
-            continue
+        results = search(query)
 
         if not results:
 
@@ -449,7 +358,7 @@ def main():
             continue
 
         # ====================================
-        # SAVE PLAYLIST
+        # STORE PLAYLIST
         # ====================================
 
         state.playlist = results
@@ -457,24 +366,26 @@ def main():
         state.current_index = 0
 
         # ====================================
-        # FIRST SONG
+        # SELECT FIRST RESULT
         # ====================================
 
-        url, title = results[0]
+        _, title = results[0]
 
-        threading.Thread(
+        # ====================================
+        # PLAY SONG
+        # ====================================
 
-            target=play_song,
+        play_song(title, ser)
 
-            args=(title,),
+        # ====================================
+        # REOPEN MICROPHONE
+        # ====================================
 
-            daemon=True
-
-        ).start()
+        state.listen_requested = True
 
 
 # ============================================
-# START
+# SYSTEM ENTRY
 # ============================================
 
 if __name__ == "__main__":
