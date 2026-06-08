@@ -1,27 +1,44 @@
-# state.py
+
+# ============================================
+# PLAYBACK MODE
+# ============================================
+
+play_mode = None
+
+
+# ============================================
+# SEARCH STATE
+# ============================================
+
+last_query = ""
+
+search_results = []
+
+search_index = 0
+
 
 # ============================================
 # PLAYLIST STATE
 # ============================================
 
-# List of search results:
-#
-# [
-#   (url, title),
-#   ...
-# ]
-#
 playlist = []
 
-# Current index inside playlist
-current_index = 0
+playlist_index = 0
 
 
 # ============================================
-# GLOBAL AUDIO PLAYER
+# CURRENT SONG
 # ============================================
 
-# Shared mpv player instance
+current_song = None
+
+current_url = None
+
+
+# ============================================
+# PLAYER
+# ============================================
+
 player = None
 
 
@@ -29,24 +46,16 @@ player = None
 # PLAYBACK STATE
 # ============================================
 
-# True when playback is manually stopped
 is_stopped = False
 
-# True while music is actively playing
 music_playing = False
 
+led_running = False
+
 
 # ============================================
-# MICROPHONE CONTROL
+# MICROPHONE STATE
 # ============================================
-#
-# Controls when voice listening
-# is allowed to start.
-#
-# True:
-#     microphone listening enabled
-#
-# False:
-#     listening disabled during playback
-#
+
 listen_requested = True
+

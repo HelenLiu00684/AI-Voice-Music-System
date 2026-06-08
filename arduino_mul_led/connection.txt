@@ -1,0 +1,59 @@
+FUSE LED Visualizer Wiring Table (2×74HC595 + Arduino Mega)
+
+| Source       | Pin        | Destination | Pin        | Purpose       |
+| ------------ | ---------- | ----------- | ---------- | ------------- |
+| Arduino Mega | D8         | 74HC595 #1  | SER (14)   | Serial Data   |
+| Arduino Mega | D9         | 74HC595 #1  | SRCLK (11) | Shift Clock   |
+| Arduino Mega | D10        | 74HC595 #1  | RCLK (12)  | Latch Clock   |
+| Arduino Mega | 5V         | 74HC595 #1  | VCC (16)   | Power         |
+| Arduino Mega | GND        | 74HC595 #1  | GND (8)    | Ground        |
+| Arduino Mega | GND        | 74HC595 #1  | OE (13)    | Enable Output |
+| Arduino Mega | 5V         | 74HC595 #1  | SRCLR (10) | Disable Reset |
+| Arduino Mega | 5V         | 74HC595 #2  | VCC (16)   | Power         |
+| Arduino Mega | GND        | 74HC595 #2  | GND (8)    | Ground        |
+| Arduino Mega | GND        | 74HC595 #2  | OE (13)    | Enable Output |
+| Arduino Mega | 5V         | 74HC595 #2  | SRCLR (10) | Disable Reset |
+| 74HC595 #1   | QH' (9)    | 74HC595 #2  | SER (14)   | Cascade Data  |
+| 74HC595 #1   | SRCLK (11) | 74HC595 #2  | SRCLK (11) | Shared Clock  |
+| 74HC595 #1   | RCLK (12)  | 74HC595 #2  | RCLK (12)  | Shared Latch  |
+
+LED Mapping Table
+
+| Register | Output Pin | LED Function |
+| -------- | ---------- | ------------ |
+| 595 #1   | QA (15)    | RED1         |
+| 595 #1   | QB (1)     | RED2         |
+| 595 #1   | QC (2)     | RED3         |
+| 595 #1   | QD (3)     | RED4         |
+| 595 #1   | QE (4)     | YELLOW1      |
+| 595 #1   | QF (5)     | YELLOW2      |
+| 595 #1   | QG (6)     | YELLOW3      |
+| 595 #1   | QH (7)     | YELLOW4      |
+| 595 #2   | QA (15)    | GREEN1       |
+| 595 #2   | QB (1)     | GREEN2       |
+| 595 #2   | QC (2)     | GREEN3       |
+| 595 #2   | QD (3)     | GREEN4       |
+| 595 #2   | QE (4)     | BLUE1        |
+| 595 #2   | QF (5)     | BLUE2        |
+| 595 #2   | QG (6)     | BLUE3        |
+| 595 #2   | QH (7)     | BLUE4        |
+
+LED Wiring Rule
+
+74HC595 Output
+
+↓
+
+220Ω–330Ω Resistor
+
+↓
+
+LED Anode (+)
+
+↓
+
+LED Cathode (-)
+
+↓
+
+GND

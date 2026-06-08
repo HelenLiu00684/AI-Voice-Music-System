@@ -1,6 +1,6 @@
 # music.py
 
-import os
+import os,time
 
 # ============================================
 # MPV LIBRARY PATH
@@ -69,23 +69,17 @@ def create_player():
 # PLAY AUDIO FILE
 # ============================================
 
+
+import time
+
 def play(player, filepath):
-
     """
-    Play a local audio file.
-
-    wait_for_playback() is critical because
-    the main system uses playback completion
-    to trigger:
-
-    - LED stop
-    - microphone reopen
-    - next system state transition
+    Play a local audio file and block until playback finishes
+    or player.stop() is called.
     """
-    # MPV function,play music 
+
     player.play(filepath)
 
-    # MPV function,block until playback finishes，python threading synchronization
     player.wait_for_playback()
 
 

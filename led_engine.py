@@ -1,142 +1,220 @@
-# led_engine.py
 
 import time
+
 import state
 
 
 # ============================================
-# REACTIVE LED ENGINE
-# ============================================
-#
-# This module converts audio energy data
-# into real-time LED behavior.
-#
-# Pipeline:
-#
-# audio energy
-#     →
-# threshold analysis
-#     →
-# beat-like change detection
-#     →
-# serial LED command
-#     →
-# Arduino hardware response
-#
-# IMPORTANT:
-# This is NOT true DSP beat detection.
-#
-# Current implementation:
-#     simplified energy-reactive lighting
-#
+# SERIAL SEND HELPER
 # ============================================
 
-def drive_led(energy_list, ser):
+def send_cmd(
 
-    """
-    Drive Arduino LED behavior using
-    analyzed audio energy data.
-    """
+    ser,
 
-    # ====================================
-    # PREVIOUS ENERGY
-    # ====================================
-    #
-    # Used for simple energy-difference
-    # detection to simulate beat response.
-    #
-    # ====================================
+    lock,
 
-    previous = 0
+    cmd
 
-    # ====================================
-    # MAIN REACTIVE LOOP
-    # ====================================
+):
 
-    while state.music_playing:
+    with lock:
 
-        for energy in energy_list:
+        ser.write(
 
-            # stop immediately if music ends
-            if not state.music_playing:
+            (cmd+"\n")
 
-                return
+            .encode()
 
-            # ====================================
-            # ENERGY DIFFERENCE
-            # ====================================
+        )
 
-            diff = energy - previous
+
+# ============================================
+# LED ENGINE
+# ============================================
+
+def drive_led(
+
+    energy_list,
+
+    ser,
+
+    lock
+
+):
+
+    print(
+        "LED ENGINE STARTED"
+    )
+
+    prev = 0
+
+    for energy in energy_list:
+
+        # ====================================
+        # stop condition
+        # ====================================
+
+        if not state.led_running:
 
             print(
-
-                "ENERGY:",
-                round(energy, 2),
-
-                "DIFF:",
-                round(diff, 2)
+                "LED STOP"
             )
 
+            send_cmd(
+
+                ser,
+
+                lock,
+
+                "C"
+
+            )
+
+            return
+
+        diff = energy - prev
+
+        prev = energy
+
+        print(
+
+            f"ENERGY:{energy:.2f}",
+
+            f"DIFF:{diff:.2f}"
+
+        )
+
+        # ====================================
+        # clear previous frame
+        # ====================================
+
+        send_cmd(
+
+            ser,
+
+            lock,
+
+            "C"
+
+        )
+
+        # ====================================
+        # beat visualization
+        # ====================================
+
+        if diff > 0.35:
+
+            send_cmd(
+
+                ser,
+
+                lock,
+
+                "R4"
+
+            )
+
+        elif diff > 0.20:
+
+            send_cmd(
+
+                ser,
+
+                lock,
+
+                "R3"
+
+            )
+
+        elif diff > 0.10:
+
+            send_cmd(
+
+                ser,
+
+                lock,
+
+                "R2"
+
+            )
+
+        elif diff > 0.05:
+
+            send_cmd(
+
+                ser,
+
+                lock,
+
+                "R1"
+
+            )
+
+        else:
+
             # ====================================
-            # STRONG ENERGY CHANGE
-            # ====================================
-            #
-            # Simulated beat pulse
-            #
-            # R = red flash
-            #
+            # energy meter
             # ====================================
 
-            if diff > 0.30:
+            if energy < 0.10:
 
-                ser.write(b'R')
+                send_cmd(
 
-                time.sleep(0.05)
+                    ser,
 
-            # ====================================
-            # HIGH ENERGY
-            # ====================================
-            #
-            # Y = yellow
-            #
-            # ====================================
+                    lock,
 
-            elif energy > 0.50:
+                    "B1"
 
-                ser.write(b'Y')
+                )
 
-                time.sleep(0.06)
+            elif energy < 0.20:
 
-            # ====================================
-            # MID ENERGY
-            # ====================================
-            #
-            # G = green
-            #
-            # ====================================
+                send_cmd(
 
-            elif energy > 0.20:
+                    ser,
 
-                ser.write(b'G')
+                    lock,
 
-                time.sleep(0.08)
+                    "G2"
 
-            # ====================================
-            # LOW ENERGY
-            # ====================================
-            #
-            # B = blue
-            #
-            # ====================================
+                )
+
+            elif energy < 0.35:
+
+                send_cmd(
+
+                    ser,
+
+                    lock,
+
+                    "Y3"
+
+                )
 
             else:
 
-                ser.write(b'B')
+                send_cmd(
 
-                time.sleep(0.10)
+                    ser,
 
-            # ====================================
-            # UPDATE PREVIOUS ENERGY
-            # ====================================
+                    lock,
 
-            previous = energy
+                    "Y4"
+
+                )
+
+        time.sleep(
+            0.08
+        )
+
+    send_cmd(
+
+        ser,
+
+        lock,
+
+        "C"
+
+    )

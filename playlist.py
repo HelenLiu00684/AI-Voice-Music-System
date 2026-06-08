@@ -1,32 +1,148 @@
+
 import json
 import os
 
-PLAYLIST_DIR = "playlists"
-os.makedirs(PLAYLIST_DIR, exist_ok=True)
+
+PLAYLIST_FILE = "playlist.json"
 
 
-def save_playlist(name, songs):
-    path = os.path.join(PLAYLIST_DIR, f"{name}.json")
+# ============================================
+# LOAD JSON FILE
+# ============================================
 
-    data = [{"title": title} for _, title in songs]
+def load_list():
 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+    if not os.path.exists(
 
+        PLAYLIST_FILE
 
-def list_playlists():
-    return [f.replace(".json", "") for f in os.listdir(PLAYLIST_DIR)]
+    ):
 
+        return []
 
-def load_playlist(name):
-    path = os.path.join(PLAYLIST_DIR, f"{name}.json")
+    with open(
 
-    with open(path, "r", encoding="utf-8") as f:
+        PLAYLIST_FILE,
+
+        "r",
+
+        encoding="utf-8"
+
+    ) as f:
+
         return json.load(f)
 
 
-def delete_playlist(name):
-    path = os.path.join(PLAYLIST_DIR, f"{name}.json")
 
-    if os.path.exists(path):
-        os.remove(path)
+# ============================================
+# SAVE JSON FILE
+# ============================================
+
+def save_list(data):
+
+    with open(
+
+        PLAYLIST_FILE,
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as f:
+
+        json.dump(
+
+            data,
+
+            f,
+
+            indent=2,
+
+            ensure_ascii=False
+
+        )
+
+
+
+# ============================================
+# ADD SONG
+# ============================================
+
+def add_song(
+
+    title,
+
+    url
+
+):
+
+    songs = load_list()
+
+    songs.append(
+
+        {
+
+            "title": title,
+
+            "url": url
+
+        }
+
+    )
+
+    save_list(
+
+        songs
+
+    )
+
+
+
+# ============================================
+# DELETE SONG
+# ============================================
+
+def delete_song(
+
+    title
+
+):
+
+    songs = load_list()
+
+    songs=[
+
+        s
+
+        for s in songs
+
+        if s["title"]!=title
+
+    ]
+
+    save_list(
+
+        songs
+
+    )
+
+
+
+# ============================================
+# CLEAR PLAYLIST
+# ============================================
+
+def clear_list():
+
+    if os.path.exists(
+
+        PLAYLIST_FILE
+
+    ):
+
+        os.remove(
+
+            PLAYLIST_FILE
+
+        )
+

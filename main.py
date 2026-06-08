@@ -8,7 +8,23 @@ import yt_dlp
 
 import state
 
+serial_lock = threading.Lock()
+
 from voice import listen
+
+from command_parser import parse_command
+
+from playlist import (
+
+    add_song,
+
+    load_list,
+
+    delete_song,
+
+    clear_list
+
+)
 
 from semantic_ai import analyze_text
 
@@ -103,80 +119,186 @@ def download_audio(title):
 #
 # ============================================
 
+
+
+# def play_song(title, ser):
+
+#     print("\nNow Playing:")
+#     print(title)
+
+#     # ==========================
+#     # download audio
+#     # ==========================
+
+#     filepath = download_audio(
+#         title
+#     )
+#     print("DOWNLOAD OK")
+#     if not filepath:
+
+#         print(
+#             "\nDownload failed"
+#         )
+
+#         return
+
+#     # ==========================
+#     # analyze energy
+#     # ==========================
+
+#     energy_list = analyze_energy(
+#         filepath
+#     )
+
+#     print("ENERGY ANALYSIS OK")
+
+#     print(
+#         "ENERGY COUNT:",
+#         len(energy_list)
+#     )
+#     # ==========================
+#     # start LED thread
+#     # ==========================
+#     print("START LED THREAD")
+
+#     state.led_running = True
+
+#     led_thread = threading.Thread(
+
+#         target=drive_led,
+
+#         args=(
+#             energy_list,
+#             ser
+#         )
+
+#     )
+
+#     led_thread.start()
+
+#     # ==========================
+#     # notify Arduino
+#     # ==========================
+
+#     ser.write(
+#         b'M'
+#     )
+
+#     # ==========================
+#     # blocking playback
+#     # returns when:
+#     #
+#     # 1 natural finish
+#     # 2 player.stop()
+#     #
+#     # ==========================
+
+#     play(
+
+#         state.player,
+
+#         filepath
+
+#     )
+
+#     # ==========================
+#     # cleanup
+#     # ==========================
+
+#     ser.write(
+#         b'S'
+#     )
+
+#     time.sleep(
+#         0.2
+#     )
+
+#     print(
+#         "\nMusic finished"
+#     )
+
+
+
+
 def play_song(title, ser):
 
     print("\nNow Playing:")
     print(title)
 
-    # ====================================
-    # DOWNLOAD AUDIO
-    # ====================================
+    filepath = download_audio(
+        title
+    )
 
-    filepath = download_audio(title)
+    print("DOWNLOAD OK")
 
     if not filepath:
 
-        print("\nDownload failed")
-
         return
 
-    # ====================================
-    # PLAYBACK CANCEL CHECK
-    # ====================================
+    energy_list = analyze_energy(
+        filepath
+    )
 
-    if state.is_stopped:
+    print("ENERGY ANALYSIS OK")
 
-        print("\nPlayback cancelled")
+    print(
+        "ENERGY COUNT:",
+        len(energy_list)
+    )
 
-        return
+    print("START LED THREAD")
 
-    # ====================================
-    # ANALYZE AUDIO ENERGY
-    # ====================================
+    state.led_running=True
 
-    energy_list = analyze_energy(filepath)
-
-    # ====================================
-    # ENABLE MUSIC STATE
-    # ====================================
-
-    state.music_playing = True
-
-    # ====================================
-    # START LED REACTIVE THREAD
-    # ====================================
-
-    threading.Thread(
+    led_thread = threading.Thread(
 
         target=drive_led,
 
-        args=(energy_list, ser),
+        args=(
 
-        daemon=True
+            energy_list,
 
-    ).start()
+            ser,
 
-    # ====================================
-    # NOTIFY ARDUINO
-    # ====================================
+            serial_lock
 
-    ser.write(b'M')
+        )
 
-    # ====================================
-    # PLAY AUDIO
-    # ====================================
+    )
 
-    play(state.player, filepath)
+    led_thread.start()
 
-    # ====================================
-    # MUSIC FINISHED
-    # ====================================
+    with serial_lock:
 
-    state.music_playing = False
+        ser.write(
+            b'M'
+        )
 
-    ser.write(b'S')
+    play(
 
-    print("\nMusic finished")
+        state.player,
+
+        filepath
+
+    )
+
+    # cleanup
+
+    state.led_running=False
+
+    with serial_lock:
+
+        ser.write(
+            b'S'
+        )
+
+    time.sleep(
+        0.2
+    )
+
+    print(
+        "\nMusic finished"
+    )
 
 
 # ============================================
@@ -195,40 +317,96 @@ def play_song(title, ser):
 #
 # ============================================
 
+
+# def serial_listener(ser):
+
+#     while True:
+
+#         try:
+
+#             line=(
+
+#                 ser.readline()
+
+#                 .decode()
+
+#                 .strip()
+
+#             )
+
+#             if line=="MIC":
+
+#                 print(
+#                     "\nMIC interrupt received"
+#                 )
+
+#                 # immediately stop playback
+
+#                 stop(
+#                     state.player
+#                 )
+
+#                 # request microphone reopen
+
+#                 if not state.listen_requested:
+
+#                     state.listen_requested=True
+
+
+#         except Exception as e:
+
+#             print(
+#                 "\nSerial listener error"
+#             )
+
+#             print(e)
+
+
 def serial_listener(ser):
 
     while True:
 
         try:
 
-            line = (
+            line=(
 
                 ser.readline()
 
                 .decode()
 
                 .strip()
+
             )
 
-            if line == "MIC":
+            if line=="MIC":
 
-                print("\nMIC interrupt received")
+                print(
+                    "\nMIC interrupt received"
+                )
 
-                # stop playback
-                state.music_playing = False
+                # stop LED immediately
 
-                state.is_stopped = True
+                state.led_running=False
 
-                stop(state.player)
+                # stop music
 
-                # reopen listening
-                state.listen_requested = True
+                stop(
+                    state.player
+                )
+
+                if not state.listen_requested:
+
+                    state.listen_requested=True
+
 
         except Exception as e:
 
-            print("\nSerial listener error")
+            print(
+                "\nSerial listener error"
+            )
 
             print(e)
+
 
 
 # ============================================
@@ -255,7 +433,7 @@ def main():
 
         "COM3",
 
-        9600
+        115200
     )
 
     # allow Arduino reset
@@ -281,6 +459,9 @@ def main():
 
     while True:
 
+
+
+
         # ====================================
         # WAIT FOR LISTEN REQUEST
         # ====================================
@@ -291,97 +472,422 @@ def main():
 
             continue
 
+
         # ====================================
         # RESET STATES
         # ====================================
 
-        state.listen_requested = False
+        state.listen_requested=False
 
-        state.is_stopped = False
+        state.is_stopped=False
+
 
         # ====================================
-        # START MICROPHONE
+        # MICROPHONE
         # ====================================
 
-        print("\n🎤 Listening...\n")
+        print(
+            "\n🎤 Listening...\n"
+        )
 
-        text = listen()
+        try:
+
+            text=listen()
+
+        except Exception:
+
+            print(
+                "\nListen timeout"
+            )
+
+            state.listen_requested=True
+
+            continue
+
 
         if not text:
 
-            print("\nNo speech detected")
-
-            state.listen_requested = True
+            state.listen_requested=True
 
             continue
 
-        print("You said:")
 
-        print(text)
+        print(
+            "You said:"
+        )
+
+        print(
+            text
+        )
+
 
         # ====================================
-        # AI SEMANTIC ANALYSIS
+        # COMMAND PARSER
         # ====================================
 
-        print("\nAI semantic parsing...\n")
+        cmd,arg=(
 
-        ai_result = analyze_text(text)
+            parse_command(
+                text
+            )
 
-        if not ai_result:
+        )
 
-            state.listen_requested = True
+        print(
+
+            "\nCOMMAND:",
+
+            cmd
+
+        )
+
+
+        # ====================================
+        # SAVE
+        # ====================================
+
+        if cmd=="SAVE":
+
+            if state.current_song:
+
+                add_song(
+
+                    state.current_song,
+
+                    state.current_url
+
+                )
+
+                print(
+                    "\nSong saved"
+                )
+
+            state.listen_requested=True
 
             continue
 
-        # ====================================
-        # BUILD SEARCH QUERY
-        # ====================================
-
-        query = build_query(ai_result)
-
-        print("\nFinal Query:")
-
-        print(query)
 
         # ====================================
-        # SEARCH YOUTUBE
+        # PLAY LIST
         # ====================================
 
-        results = search(query)
+        if cmd=="PLAYLIST":
+
+            songs=load_list()
+
+            if not songs:
+
+                print(
+                    "\nPlaylist empty"
+                )
+
+                state.listen_requested=True
+
+                continue
+
+            state.play_mode="PLAYLIST"
+
+            state.playlist=songs
+
+            state.playlist_index=0
+
+            song=songs[0]
+
+            state.current_song=(
+
+                song["title"]
+
+            )
+
+            state.current_url=(
+
+                song["url"]
+
+            )
+
+            play_song(
+
+                state.current_song,
+
+                ser
+
+            )
+
+            state.listen_requested=True
+
+            continue
+
+
+        # ====================================
+        # DELETE SONG
+        # ====================================
+
+        if cmd=="DELETE_SONG":
+
+            if state.current_song:
+
+                delete_song(
+
+                    state.current_song
+
+                )
+
+                print(
+                    "\nSong deleted"
+                )
+
+            state.listen_requested=True
+
+            continue
+
+
+        # ====================================
+        # DELETE LIST
+        # ====================================
+
+        if cmd=="DELETE_LIST":
+
+            clear_list()
+
+            print(
+                "\nPlaylist deleted"
+            )
+
+            state.listen_requested=True
+
+            continue
+
+
+        # ====================================
+        # NEXT
+        # ====================================
+
+        if cmd=="NEXT":
+
+            if state.play_mode=="PLAYLIST":
+
+                state.playlist_index+=1
+
+                if (
+
+                    state.playlist_index
+
+                    >=
+
+                    len(
+
+                        state.playlist
+
+                    )
+
+                ):
+
+                    print(
+                        "\nPlaylist finished"
+                    )
+
+                    state.listen_requested=True
+
+                    continue
+
+                song=(
+
+                    state.playlist[
+
+                        state.playlist_index
+
+                    ]
+
+                )
+
+                state.current_song=(
+
+                    song["title"]
+
+                )
+
+                state.current_url=(
+
+                    song["url"]
+
+                )
+
+                play_song(
+
+                    state.current_song,
+
+                    ser
+
+                )
+
+                state.listen_requested=True
+
+                continue
+
+
+            if state.play_mode=="SEARCH":
+
+                state.search_index+=1
+
+                if (
+
+                    state.search_index
+
+                    >=
+
+                    len(
+
+                        state.search_results
+
+                    )
+
+                ):
+
+                    print(
+                        "\nSearching more..."
+                    )
+
+                    state.search_results=(
+
+                        search(
+
+                            state.last_query
+
+                        )
+
+                    )
+
+                    state.search_index=0
+
+                    if not state.search_results:
+
+                        state.listen_requested=True
+
+                        continue
+
+
+                url,title=(
+
+                    state.search_results[
+
+                        state.search_index
+
+                    ]
+
+                )
+
+                state.current_song=title
+
+                state.current_url=url
+
+                play_song(
+
+                    title,
+
+                    ser
+
+                )
+
+                state.listen_requested=True
+
+                continue
+
+
+            print(
+                "\nNothing to skip"
+            )
+
+            state.listen_requested=True
+
+            continue
+
+
+        # ====================================
+        # BUILD QUERY
+        # ====================================
+
+        if cmd=="SEARCH":
+
+            query=arg
+
+        else:
+
+            print(
+                "\nAI semantic parsing...\n"
+            )
+
+            ai_result=(
+
+                analyze_text(
+                    text
+                )
+
+            )
+
+            if not ai_result:
+
+                state.listen_requested=True
+
+                continue
+
+            query=(
+
+                build_query(
+                    ai_result
+                )
+
+            )
+
+
+        # ====================================
+        # SEARCH
+        # ====================================
+
+        results=(
+
+            search(
+                query
+            )
+
+        )
 
         if not results:
 
-            print("\nNo songs found")
-
-            state.listen_requested = True
+            state.listen_requested=True
 
             continue
 
-        # ====================================
-        # STORE PLAYLIST
-        # ====================================
 
-        state.playlist = results
+        state.play_mode="SEARCH"
 
-        state.current_index = 0
+        state.search_results=results
 
-        # ====================================
-        # SELECT FIRST RESULT
-        # ====================================
+        state.search_index=0
 
-        _, title = results[0]
+        state.last_query=query
 
-        # ====================================
-        # PLAY SONG
-        # ====================================
 
-        play_song(title, ser)
+        url,title=(
 
-        # ====================================
-        # REOPEN MICROPHONE
-        # ====================================
+            results[0]
 
-        state.listen_requested = True
+        )
+
+        state.current_song=title
+
+        state.current_url=url
+
+
+        play_song(
+
+            title,
+
+            ser
+
+        )
+
+        state.listen_requested=True
+
 
 
 # ============================================
