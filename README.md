@@ -1,16 +1,54 @@
 # AI Voice Music System
 
-An AI-driven reactive music system combining:
+## Project Overview
 
-- Voice-controlled music search
-- OpenAI semantic understanding
-- YouTube audio retrieval
-- Real-time audio playback
-- Audio energy analysis
-- Arduino hardware interfacing
-- Reactive LED visualization
+AI Voice Music System is an event-driven music platform that combines Artificial Intelligence, audio processing, and embedded systems.
 
-The system integrates both software and embedded hardware components into a portable event-driven architecture.
+The project integrates:
+
+* Voice-controlled music interaction
+* OpenAI semantic understanding
+* YouTube music retrieval
+* Real-time audio playback
+* Audio energy analysis
+* Arduino hardware communication
+* Reactive LED visualization
+
+The goal is to demonstrate how AI software systems can interact with embedded hardware through a modular architecture.
+
+---
+
+# System Architecture
+
+```text
+User
+ ↓
+voice.py
+ ↓
+command_parser.py
+ ↓
+main.py (Event-Driven FSM)
+ ↓
+Semantic AI Layer
+ ↓
+Query Builder
+ ↓
+YouTube Retrieval
+ ↓
+Audio Download
+ ↓
+Playback Engine
+ ↓
+Audio Energy Analysis
+ ↓
+LED Engine
+ ↓
+Arduino Serial Communication
+ ↓
+2×74HC595 Shift Registers
+ ↓
+LED Visualization
+```
 
 ---
 
@@ -18,78 +56,348 @@ The system integrates both software and embedded hardware components into a port
 
 ## AI Semantic Music Search
 
-The system converts natural voice input into semantic music queries.
+The system converts natural language music requests into optimized search queries.
 
-Example:
+Examples:
 
 ```text
-"Play the FIFA 2010 song"
+search Taylor Swift
 
 ↓
 
-Shakira - Waka Waka
+Taylor Swift
+```
 
-The AI layer uses OpenAI semantic parsing to improve music retrieval quality.
+```text
+search FIFA 2026
 
-Audio Playback
-Audio-only playback
-YouTube audio extraction
-Local audio buffering
-Background playback using mpv
-Audio Energy Analysis
+↓
 
-The system analyzes audio energy in real time and converts music intensity into reactive LED behavior.
+FIFA World Cup 2026
+```
+
+```text
+search the Shakira FIFA song
+
+↓
+
+Shakira Waka Waka FIFA World Cup 2010
+```
+
+Semantic parsing improves search quality while preserving explicit keywords.
+
+---
+
+## Voice-Controlled Commands
+
+Supported commands include:
+
+* Search music
+* Save songs
+* Play playlists
+* Skip songs
+* Delete songs
+* Clear playlists
+* Stop playback
+
+---
+
+## Audio Playback
+
+Features:
+
+* YouTube audio extraction
+* Audio-only playback
+* Temporary local buffering
+* MPV playback backend
+* Blocking playback workflow
+
+---
+
+## Audio Energy Analysis
+
+The system extracts simplified energy features from music.
 
 Current implementation includes:
 
-chunk-based audio analysis
-normalized energy extraction
-threshold-based visualization
-simple beat-like pulse detection
-Arduino Reactive LED System
+* Chunk-based analysis
+* Mono conversion
+* Energy normalization
+* Threshold-based classification
+* Beat-like pulse visualization
 
-The hardware layer currently supports:
+Note:
 
-Arduino serial communication
-74HC595 shift register control
-Multi-color LED visualization
-Real-time reactive lighting
+This implementation estimates average signal energy rather than performing true DSP beat detection.
 
-Current LED mapping:
+---
 
-Energy Level	LED Color
-Low	Blue
-Medium	Green
-High	Yellow
-Peak / Beat Pulse	Red
-System Architecture
-Microphone Input
-        ↓
-Speech Recognition
-        ↓
-OpenAI Semantic Parsing
-        ↓
-Search Query Builder
-        ↓
-YouTube Retrieval
-        ↓
-Audio Download
-        ↓
-Audio Playback
-        ↓
-Audio Energy Analysis
-        ↓
-LED Reactive Engine
-        ↓
-Arduino Serial Communication
-        ↓
-74HC595 + LEDs
-Project Structure
+## Reactive LED Visualization
+
+The embedded layer supports:
+
+* Arduino serial communication
+* Dual 74HC595 shift registers
+* Multi-color LED visualization
+* Real-time reactive lighting
+
+Current LED Mapping:
+
+| Energy Level | LED Color |
+| ------------ | --------- |
+| Low          | Blue      |
+| Medium       | Green     |
+| High         | Yellow    |
+| Peak / Pulse | Red       |
+
+---
+
+# Quick Start
+
+## Clone Repository
+
+```bash
+git clone <repository-url>
+
+cd AI_music
+```
+
+---
+
+## Create Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+---
+
+## Activate Environment
+
+Windows PowerShell:
+
+```powershell
+venv\Scripts\activate
+```
+
+Linux / Raspberry Pi:
+
+```bash
+source venv/bin/activate
+```
+
+---
+
+## Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Run the Project
+
+```bash
+python main.py
+```
+
+---
+
+# Python Packages and Purpose
+
+| Package           | Installation                  | Purpose               | Used By        |
+| ----------------- | ----------------------------- | --------------------- | -------------- |
+| openai            | pip install openai            | Semantic AI           | semantic_ai.py |
+| SpeechRecognition | pip install SpeechRecognition | Voice recognition     | voice.py       |
+| pyaudio           | pip install pyaudio           | Microphone capture    | voice.py       |
+| yt-dlp            | pip install yt-dlp            | YouTube retrieval     | main.py        |
+| python-mpv        | pip install python-mpv        | Audio playback        | music.py       |
+| pyserial          | pip install pyserial          | Arduino communication | main.py        |
+| pydub             | pip install pydub             | Audio decoding        | rhythm.py      |
+| numpy             | pip install numpy             | Energy analysis       | rhythm.py      |
+
+---
+
+# External Software Requirements
+
+## FFmpeg
+
+Purpose:
+
+Audio decoding and processing.
+
+Verify installation:
+
+```bash
+ffmpeg -version
+```
+
+---
+
+## MPV Player
+
+Purpose:
+
+Audio playback engine.
+
+Required files:
+
+```text
+mpv.exe
+libmpv-2.dll
+```
+
+---
+
+## Arduino IDE
+
+Purpose:
+
+Upload firmware to Arduino.
+
+# OpenAI API Configuration
+
+Windows PowerShell:
+
+```powershell
+setx OPENAI_API_KEY "your_api_key"
+```
+
+Restart PowerShell after configuration.
+
+Linux / Raspberry Pi:
+
+```bash
+export OPENAI_API_KEY="your_api_key"
+```
+
+---
+
+# Security Notice
+
+Do NOT upload API keys to GitHub.
+
+Correct approach:
+
+```python
+import os
+
+api_key = os.getenv("OPENAI_API_KEY")
+```
+
+Incorrect approach:
+
+```python
+api_key = "sk-xxxxxxxxxxxxxxxx"
+```
+
+The repository should never contain:
+
+* API keys
+* Passwords
+* Tokens
+* Credentials
+
+Always use environment variables.
+
+---
+
+# Voice Commands
+
+## Supported Commands
+
+| Command     | Example             | Action              |
+| ----------- | ------------------- | ------------------- |
+| SEARCH      | search Taylor Swift | AI semantic search  |
+| SAVE        | save                | Save current song   |
+| NEXT        | next                | Play next song      |
+| PLAYLIST    | play playlist       | Play saved playlist |
+| DELETE SONG | delete song         | Delete current song |
+| DELETE LIST | delete playlist     | Clear playlist      |
+| STOP        | stop music          | Stop playback       |
+
+---
+
+## Optional Shortcuts
+
+For improved speech recognition accuracy, numerical shortcuts are also supported.
+
+| Shortcut | Equivalent  |
+| -------- | ----------- |
+| one      | SEARCH      |
+| two      | SAVE        |
+| three    | NEXT        |
+| four     | PLAYLIST    |
+| five     | DELETE SONG |
+| six      | DELETE LIST |
+| seven    | STOP        |
+
+---
+
+# Example Voice Workflow
+
+Search music:
+
+```text
+search Taylor Swift
+```
+
+Save current song:
+
+```text
+save
+```
+
+Skip to next song:
+
+```text
+next
+```
+
+Play saved playlist:
+
+```text
+play playlist
+```
+
+Delete current song:
+
+```text
+delete song
+```
+
+Stop playback:
+
+```text
+stop music
+```
+
+---
+
+# Hardware Requirements
+
+The current implementation uses:
+
+* Arduino Mega 2560
+* Two 74HC595 shift registers
+* 16 LEDs
+* 220Ω–330Ω resistors
+* Breadboard
+* Jumper wires
+* USB serial connection
+
+---
+
+# Project Structure
+
+```text
 AI_music/
 │
 ├── main.py
 ├── state.py
 ├── voice.py
+├── command_parser.py
 ├── semantic_ai.py
 ├── query_builder.py
 ├── ai_query.py
@@ -98,248 +406,365 @@ AI_music/
 ├── led_engine.py
 ├── playlist.py
 │
-├── arduino_led/
+├── arduino_mul_led/
+│   ├── arduino_led_muti.ino
+│   ├── connection.txt
+│   ├── test_serial.py
+│   └── test_all_led.py
 │
 ├── temp/
-│
+├── requirements.txt
 └── README.md
-Python Version
+```
 
-Recommended:
+---
 
-Python 3.11
-Create Virtual Environment
-python -m venv venv
-Activate Virtual Environment
+# Runtime State Design
 
-Windows PowerShell:
+The application maintains a centralized runtime state.
 
-venv\Scripts\activate
-Install Required Python Libraries
-OpenAI API
-pip install openai
+```text
+Voice Commands
+       ↓
+command_parser.py
+       ↓
+main.py
+       ↓
+state.py
+       ↓
+Other Functional Modules
+```
 
-Purpose:
+This design allows different modules to coordinate playback, playlist management, LED behavior, and microphone control through a shared state model.
 
-AI semantic parsing
-Speech Recognition
-pip install SpeechRecognition
+---
 
-Purpose:
+# Event-Driven Architecture
 
-Microphone speech recognition
-PyAudio
-pip install pyaudio
+The system behaves similarly to an event-driven finite state machine.
 
-Purpose:
+```text
+Events
+   ↓
+Voice Commands
+   ↓
+Command Parser
+   ↓
+State Transition
+   ↓
+Action Execution
+```
 
-Microphone audio capture
-yt-dlp
-pip install yt-dlp
+Examples of events include:
 
-Purpose:
+* SEARCH
+* SAVE
+* NEXT
+* PLAYLIST
+* DELETE SONG
+* DELETE LIST
+* STOP
+* Serial Interrupt (MIC)
 
-YouTube music search and audio download
-python-mpv
-pip install python-mpv
+---
 
-Purpose:
+# Serial Interrupt Behavior
 
-Audio playback backend
-pyserial
-pip install pyserial
+Arduino can interrupt the software system through serial communication.
 
-Purpose:
+Example:
 
-Python ↔ Arduino serial communication
-pydub
-pip install pydub
+```text
+Arduino
+   ↓
+MIC
+   ↓
+Stop Playback
+   ↓
+Stop LEDs
+   ↓
+Reopen Microphone
+```
 
-Purpose:
+This mechanism enables hardware-triggered interaction with the software workflow.
 
-Audio energy analysis
-numpy
-pip install numpy
+# Hardware Architecture
 
-Purpose:
+The LED visualization subsystem uses an Arduino Mega and two cascaded 74HC595 shift registers to drive 16 LEDs while minimizing GPIO usage.
 
-Audio processing
-External Software
-FFmpeg
+System Flow:
 
-Download:
+```text
+Music Playback
+      ↓
+Audio Energy Analysis
+      ↓
+LED Engine
+      ↓
+Serial Communication
+      ↓
+Arduino Mega
+      ↓
+2 × 74HC595
+      ↓
+16 LEDs
+```
 
-FFmpeg Official Website
+---
 
-After installation:
+# 74HC595 Wiring Table
 
-ffmpeg -version
+## Arduino Mega → 74HC595 #1
 
-It should run correctly from PowerShell.
+| Arduino Mega | Pin | 74HC595 #1 |   Pin | Purpose |               |
+| ------------ | --: | ---------- | ----: | ------- | ------------- |
+| Arduino Mega |  D8 | 74HC595 #1 |   SER | 14      | Serial Data   |
+| Arduino Mega |  D9 | 74HC595 #1 | SRCLK | 11      | Shift Clock   |
+| Arduino Mega | D10 | 74HC595 #1 |  RCLK | 12      | Latch Clock   |
+| Arduino Mega |  5V | 74HC595 #1 |   VCC | 16      | Power         |
+| Arduino Mega | GND | 74HC595 #1 |   GND | 8       | Ground        |
+| Arduino Mega | GND | 74HC595 #1 |    OE | 13      | Enable Output |
+| Arduino Mega |  5V | 74HC595 #1 | SRCLR | 10      | Disable Reset |
 
-Purpose:
+---
 
-Audio decoding and processing
-mpv Player
+## Cascaded Connection
 
-Download:
+| Source     |   Pin | Destination |        Pin | Purpose |    |              |
+| ---------- | ----: | ----------- | ---------: | ------- | -- | ------------ |
+| 74HC595 #1 |   QH' | 9           | 74HC595 #2 | SER     | 14 | Cascade Data |
+| 74HC595 #1 | SRCLK | 11          | 74HC595 #2 | SRCLK   | 11 | Shared Clock |
+| 74HC595 #1 |  RCLK | 12          | 74HC595 #2 | RCLK    | 12 | Shared Latch |
 
-mpv Official Website
+---
 
-Required files:
+## Power Connections for 74HC595 #2
 
-mpv.exe
-libmpv-2.dll
+| Arduino Mega | Pin | 74HC595 #2 |   Pin | Purpose |               |
+| ------------ | --: | ---------- | ----: | ------- | ------------- |
+| Arduino Mega |  5V | 74HC595 #2 |   VCC | 16      | Power         |
+| Arduino Mega | GND | 74HC595 #2 |   GND | 8       | Ground        |
+| Arduino Mega | GND | 74HC595 #2 |    OE | 13      | Enable Output |
+| Arduino Mega |  5V | 74HC595 #2 | SRCLR | 10      | Disable Reset |
 
-Purpose:
+---
 
-Audio playback engine
-Arduino IDE
+# LED Mapping Table
 
-Download:
+## 74HC595 #1
 
-Arduino IDE
+| Output  | LED Function |
+| ------- | ------------ |
+| QA (15) | RED1         |
+| QB (1)  | RED2         |
+| QC (2)  | RED3         |
+| QD (3)  | RED4         |
+| QE (4)  | YELLOW1      |
+| QF (5)  | YELLOW2      |
+| QG (6)  | YELLOW3      |
+| QH (7)  | YELLOW4      |
 
-Purpose:
+---
 
-Upload Arduino firmware
-OpenAI API Key
+## 74HC595 #2
 
-Windows PowerShell:
+| Output  | LED Function |
+| ------- | ------------ |
+| QA (15) | GREEN1       |
+| QB (1)  | GREEN2       |
+| QC (2)  | GREEN3       |
+| QD (3)  | GREEN4       |
+| QE (4)  | BLUE1        |
+| QF (5)  | BLUE2        |
+| QG (6)  | BLUE3        |
+| QH (7)  | BLUE4        |
 
-setx OPENAI_API_KEY "your_api_key"
+---
 
-Restart PowerShell after setting the environment variable.
+# LED Wiring Rule
 
-Important Security Notice
+Each LED should be connected using a current-limiting resistor.
 
-Do NOT upload real API keys to GitHub.
+```text
+74HC595 Output
+        ↓
+220Ω–330Ω Resistor
+        ↓
+LED Anode (+)
+        ↓
+LED Cathode (-)
+        ↓
+GND
+```
 
-Correct approach:
+---
 
-import os
+# LED Layout
 
-api_key = os.getenv("OPENAI_API_KEY")
+The current implementation uses four groups of LEDs:
 
-Incorrect approach:
+```text
+RED:
+R1  R2  R3  R4
 
-api_key = "sk-xxxxxxxx"
-Hardware Requirements
+YELLOW:
+Y1  Y2  Y3  Y4
 
-Current hardware setup:
+GREEN:
+G1  G2  G3  G4
 
-Arduino Uno / Mega
-74HC595 shift register
-LEDs
-Breadboard
-Resistors
-Push button switch
-USB serial connection
-Current Reactive LED Logic
+BLUE:
+B1  B2  B3  B4
+```
 
-The system currently uses:
+---
 
-audio waveform
-    →
-audio energy extraction
-    →
-normalized energy values
-    →
-threshold classification
-    →
-LED color mapping
+# Raspberry Pi Compatibility
 
-This is currently a simplified reactive lighting system rather than true DSP beat detection.
+The software architecture is designed for future Raspberry Pi deployment.
 
-Raspberry Pi Compatibility
+## Audio Backend
 
-This project architecture is designed to be portable to Raspberry Pi with minimal code changes.
+Windows:
 
-The current implementation runs on Windows 11 using:
-
+```text
 ao="wasapi"
+```
 
-For Raspberry Pi / Linux environments, the audio backend can be changed to:
+Linux / Raspberry Pi:
 
+```text
 ao="alsa"
 
-or:
+or
 
 ao="pulse"
+```
 
-The serial port configuration should also be updated from:
+---
 
+## Serial Port
+
+Windows:
+
+```text
 COM3
+```
 
-to a Linux serial device such as:
+Linux / Raspberry Pi:
 
+```text
 /dev/ttyUSB0
 
-or:
+or
 
 /dev/ttyACM0
-Compatible Components
+```
 
-The following core system components remain compatible with Raspberry Pi:
+---
 
-OpenAI semantic parsing
-Speech recognition
-Audio playback
-Serial communication
-Arduino LED control
-Event-driven FSM
-Audio energy analysis
-Current Architecture Design
+## Portable Modules
 
-The current architecture follows a modular event-driven structure:
+The following modules require little or no modification during migration:
 
-Voice input layer
-AI semantic layer
-Retrieval layer
-Audio playback layer
-Audio analysis layer
-Serial communication layer
-Hardware control layer
+* voice.py
+* semantic_ai.py
+* query_builder.py
+* ai_query.py
+* music.py
+* rhythm.py
+* led_engine.py
+* playlist.py
+* state.py
 
-This design allows the project to evolve toward a portable embedded AI music system.
+---
 
-Future Development
-1. AI Semantic Query Improvement
+# Future Development
 
-Future goals:
+## AI Semantic Search
 
-improved semantic understanding
-better search ranking
-improved prompt engineering
-richer music context understanding
-2. Advanced LED Visualization
+Potential improvements include:
 
-Future goals:
+* Improved prompt engineering
+* Better search ranking
+* Richer semantic understanding
+* Context-aware recommendations
 
-improved beat detection
-PWM brightness control
-advanced rhythm visualization
-multi-layer LED effects
-dynamic animation modes
-3. Raspberry Pi Migration
+---
 
-Future goals:
+## Advanced Audio Analysis
 
-embedded Linux deployment
-portable standalone architecture
-optimized hardware integration
-portable AI music system
-Educational Purpose
+Possible future enhancements:
 
-This project is currently designed as:
+* Beat detection
+* BPM estimation
+* Onset detection
+* Frequency band analysis
+* Music visualization effects
 
-AI + Embedded Systems + Audio Reactive Visualization
+---
 
-It combines:
+## LED Improvements
 
-AI semantic systems
-real-time event-driven architecture
-serial communication
-embedded hardware control
-reactive visualization
-audio signal quantization
+Potential upgrades:
+
+* PWM brightness control
+* Dynamic animations
+* RGB LED support
+* Addressable LED strips
+* More than 16 channels
+
+---
+
+## Raspberry Pi Deployment
+
+Long-term goals include:
+
+* Standalone embedded deployment
+* Local audio playback
+* Portable hardware packaging
+* Reduced dependency on desktop systems
+
+---
+
+# Educational Purpose
+
+This project was developed as an educational demonstration combining multiple disciplines:
+
+* Artificial Intelligence
+* Embedded Systems
+* Audio Processing
+* Event-Driven Programming
+* Serial Communication
+* Human-Computer Interaction
+* Reactive Visualization
+
+The project demonstrates how AI software can interact with physical hardware through a modular software architecture.
+
+---
+
+# Design Philosophy
+
+The system emphasizes the following principles:
+
+```text
+Separation of Concerns
+        ↓
+Modular Components
+        ↓
+Event-Driven Coordination
+        ↓
+Hardware Abstraction
+        ↓
+Portable Architecture
+```
+
+Each module has a clearly defined responsibility, making the system easier to understand, maintain, test, and extend.
+
+---
+
+# Acknowledgements
+
+This project was developed as part of an academic group project exploring the integration of AI technologies with embedded hardware systems.
+
+Special thanks to instructors, teammates, and open-source communities whose tools and documentation made this work possible.

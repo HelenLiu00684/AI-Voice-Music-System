@@ -1,3 +1,4 @@
+
 # semantic_ai.py
 
 import os
@@ -5,81 +6,203 @@ from openai import OpenAI
 
 
 # ============================================
+# AI SEMANTIC LAYER
+# ============================================
+#
+# Responsibility:
+#
+#     Convert natural language music
+#     requests into structured semantic
+#     entities using OpenAI.
+#
+# This module DOES:
+#
+#     - interpret ambiguous requests
+#     - extract music-related entities
+#     - generate structured metadata
+#
+# This module DOES NOT:
+#
+#     - search YouTube
+#     - download music
+#     - play audio
+#     - manage playlists
+#
+# Design Flow:
+#
+#        User Request
+#              ↓
+#         OpenAI Model
+#              ↓
+#      Semantic Entities
+#              ↓
+#        Query Builder
+#              ↓
+#       YouTube Search
+#
+# Design Principle:
+#
+#     Separate semantic understanding
+#     from downstream retrieval logic.
+#
+# Current Status:
+#
+#     This module is optional in the
+#     current command-based workflow.
+#
+#     It is preserved as the foundation
+#     for future semantic search upgrades.
+#
+# ============================================
+
+
+# ============================================
 # OPENAI CLIENT
 # ============================================
 #
-# API key should be stored in:
+# API keys should be stored using
+# environment variables.
 #
-# Windows:
-#     OPENAI_API_KEY environment variable
+# Example:
+#
+#     Windows:
+#
+#         OPENAI_API_KEY
 #
 # Never hardcode API keys directly
-# into source code.
+# into source code repositories.
 #
 # ============================================
 
 client = OpenAI(
 
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key=os.getenv(
+
+        "OPENAI_API_KEY"
+
+    )
+
 )
 
 
 # ============================================
 # AI SEMANTIC ANALYSIS
 # ============================================
-#
-# This module converts raw user speech
-# into structured semantic music metadata.
-#
-# Example:
-#
-# Input:
-#     "Shakira FIFA 2010"
-#
-# Output:
-# {
-#   "artist": "Shakira",
-#   "song": "Waka Waka",
-#   "event": "FIFA World Cup",
-#   "year": 2010
-# }
-#
-# The purpose of this layer is:
-#
-# raw speech
-#     →
-# semantic understanding
-#     →
-# structured search entities
-#
-# ============================================
 
 def analyze_text(text):
 
     """
-    Analyze user speech using OpenAI.
+    Analyze natural language music requests
+    using OpenAI.
+
+    Input:
+
+        text:
+            Raw user speech or text.
 
     Returns:
-        JSON-formatted semantic result.
+
+        JSON-formatted semantic entities.
+
+    Example:
+
+        Input:
+
+            "the Shakira FIFA song"
+
+        Output:
+
+            {
+                "artist":"Shakira",
+                "song":"Waka Waka",
+                "event":"FIFA World Cup",
+                "year":2010
+            }
+
+    Processing Flow:
+
+            User Input
+                 ↓
+           Prompt Creation
+                 ↓
+           OpenAI Model
+                 ↓
+         Semantic Parsing
+                 ↓
+            JSON Output
+
+    Design Notes:
+
+        This function performs semantic
+        interpretation rather than
+        information retrieval.
+
+        The resulting JSON can be
+        consumed by downstream query
+        optimization modules.
+
+    Future Usage:
+
+        Example:
+
+            search the Shakira FIFA song
+
+                    ↓
+
+              Semantic AI
+
+                    ↓
+
+             Query Builder
+
+                    ↓
+
+            YouTube Search
     """
 
     # ====================================
-    # AI PROMPT
+    # SEMANTIC EXTRACTION PROMPT
+    # ====================================
+    #
+    # Guide the language model to extract
+    # only structured music-related
+    # entities.
+    #
+    # Target entities:
+    #
+    #     artist
+    #     song
+    #     movie
+    #     event
+    #     mood
+    #     year
+    #
+    # The prompt intentionally requests
+    # short JSON output to simplify
+    # downstream processing.
+    #
     # ====================================
 
     prompt = f"""
-    Analyze this music request.
+    Analyze this music search request.
 
     User input:
     {text}
 
-    Return:
+    If the request already contains clear
+    search keywords, preserve them.
+
+    Extract the following entities if applicable:
+
     - artist
     - song
     - movie
     - event
     - mood
     - year
+
+    If information cannot be inferred,
+    leave the field empty.
 
     Return short JSON only.
     """
@@ -89,23 +212,44 @@ def analyze_text(text):
         # ====================================
         # OPENAI CHAT COMPLETION
         # ====================================
+        #
+        # Submit the semantic extraction
+        # request to OpenAI.
+        #
+        # The model returns structured
+        # music-related entities in JSON
+        # format.
+        #
+        # ====================================
 
         response = client.chat.completions.create(
 
             model="gpt-4.1-mini",
 
             messages=[
+
                 {
+
                     "role": "user",
+
                     "content": prompt
+
                 }
+
             ]
+
         )
 
         content = response.choices[0].message.content
 
         # ====================================
         # DEBUG OUTPUT
+        # ====================================
+        #
+        # Display raw semantic output from
+        # OpenAI for prompt verification
+        # and development testing.
+        #
         # ====================================
 
         print("\n====================")
@@ -120,8 +264,25 @@ def analyze_text(text):
 
     except Exception as e:
 
-        print("AI semantic parsing failed")
+        # ====================================
+        # FAIL GRACEFULLY
+        # ====================================
+        #
+        # Return an empty semantic result
+        # when AI parsing fails.
+        #
+        # This prevents semantic failures
+        # from crashing the overall system.
+        #
+        # ====================================
+
+        print(
+
+            "AI semantic parsing failed"
+
+        )
 
         print(e)
 
         return ""
+

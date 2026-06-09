@@ -1,20 +1,240 @@
 
 # ============================================
-# COMMAND PARSER
+# VOICE COMMAND PARSER
+# ============================================
+#
+# SUPPORTED VOICE COMMANDS
+#
+# ------------------------------------------------
+# Search Music
+# ------------------------------------------------
+#
+# Examples:
+#
+#     search Taylor Swift
+#     search Adele
+#     search Titanic soundtrack
+#
+# Optional Shortcut:
+#
+#     one Taylor Swift
+#
+# Returns:
+#
+#     ("SEARCH", query)
+#
+#
+# ------------------------------------------------
+# Save Current Song
+# ------------------------------------------------
+#
+# Examples:
+#
+#     save
+#     save song
+#     save this song
+#     save into the playlist
+#     write into the playlist
+#
+# Optional Shortcut:
+#
+#     two
+#
+# Returns:
+#
+#     ("SAVE", None)
+#
+#
+# ------------------------------------------------
+# Play Next Song
+# ------------------------------------------------
+#
+# Examples:
+#
+#     next
+#     next song
+#     play next song
+#
+# Optional Shortcut:
+#
+#     three
+#
+# Returns:
+#
+#     ("NEXT", None)
+#
+#
+# ------------------------------------------------
+# Play Playlist
+# ------------------------------------------------
+#
+# Examples:
+#
+#     play list
+#     play playlist
+#     play my playlist
+#
+# Optional Shortcut:
+#
+#     four
+#
+# Returns:
+#
+#     ("PLAYLIST", None)
+#
+#
+# ------------------------------------------------
+# Delete Current Song
+# ------------------------------------------------
+#
+# Examples:
+#
+#     delete song
+#     remove this song
+#
+# Optional Shortcut:
+#
+#     five
+#
+# Returns:
+#
+#     ("DELETE_SONG", None)
+#
+#
+# ------------------------------------------------
+# Delete Entire Playlist
+# ------------------------------------------------
+#
+# Examples:
+#
+#     delete playlist
+#     clear playlist
+#
+# Optional Shortcut:
+#
+#     six
+#
+# Returns:
+#
+#     ("DELETE_LIST", None)
+#
+#
+# ------------------------------------------------
+# Stop Playback
+# ------------------------------------------------
+#
+# Examples:
+#
+#     stop music
+#     stop song
+#
+# Optional Shortcut:
+#
+#     seven
+#
+# Returns:
+#
+#     ("STOP", None)
+#
+#
+# ------------------------------------------------
+# Unsupported Input
+# ------------------------------------------------
+#
+# Any input that does not match the
+# commands above is classified as:
+#
+#     ("UNKNOWN", text)
+#
+# Examples:
+#
+#     hello
+#     good morning
+#     abcxyz
+#
+#
+# ============================================
+# RESPONSIBILITY
+# ============================================
+#
+# Convert raw speech recognition output
+# into normalized commands consumed by
+# the main state machine.
+#
+# Design Flow:
+#
+#     Speech Recognition
+#             ↓
+#      Command Parser
+#             ↓
+#     Normalized Events
+#             ↓
+#      Main State Machine
+#
+# Design Principle:
+#
+#     Explicit commands improve system
+#     reliability and avoid unintended
+#     actions caused by speech recognition
+#     ambiguity.
+#
 # ============================================
 
 
 def parse_command(text):
 
-    text=text.lower().strip()
+    """
+    Parse voice input into normalized commands.
+
+    Input:
+        Raw speech recognition text.
+
+    Output:
+        (
+            command,
+            argument
+        )
+
+    Examples:
+
+        "search Taylor Swift"
+
+            →
+
+        ("SEARCH", "Taylor Swift")
 
 
-    # SEARCH
+        "save song"
 
+            →
+
+        ("SAVE", None)
+
+
+        "next song"
+
+            →
+
+        ("NEXT", None)
+
+
+        "hello"
+
+            →
+
+        ("UNKNOWN", "hello")
+    """
+
+    text = text.lower().strip()
+
+
+    # ====================================
+    # SEARCH COMMAND
+    # ====================================
 
     if text.startswith(
 
-        ("search ","one ")
+        ("search ", "one ")
 
     ):
 
@@ -24,7 +244,7 @@ def parse_command(text):
 
         ):
 
-            query=text.replace(
+            query = text.replace(
 
                 "search",
 
@@ -36,7 +256,7 @@ def parse_command(text):
 
         else:
 
-            query=text.replace(
+            query = text.replace(
 
                 "one",
 
@@ -46,7 +266,7 @@ def parse_command(text):
 
             )
 
-        query=query.strip()
+        query = query.strip()
 
         return (
 
@@ -57,23 +277,23 @@ def parse_command(text):
         )
 
 
-
-
-    # SAVE
+    # ====================================
+    # SAVE CURRENT SONG
+    # ====================================
 
     if text in [
 
         "save",
 
+        "save song",
+
+        "save this song",
+
         "save into the playlist",
 
         "write into the playlist",
 
-        "save song",
-
-        "Two",
-
-        "save this song"
+        "two"
 
     ]:
 
@@ -86,7 +306,9 @@ def parse_command(text):
         )
 
 
-    # NEXT
+    # ====================================
+    # NEXT SONG
+    # ====================================
 
     if text in [
 
@@ -96,7 +318,7 @@ def parse_command(text):
 
         "play next song",
 
-        "Three"
+        "three"
 
     ]:
 
@@ -109,7 +331,9 @@ def parse_command(text):
         )
 
 
-    # PLAYLIST
+    # ====================================
+    # PLAY PLAYLIST
+    # ====================================
 
     if text in [
 
@@ -119,7 +343,7 @@ def parse_command(text):
 
         "play my playlist",
 
-        "Four"
+        "four"
 
     ]:
 
@@ -132,7 +356,9 @@ def parse_command(text):
         )
 
 
-    # DELETE SONG
+    # ====================================
+    # DELETE CURRENT SONG
+    # ====================================
 
     if text in [
 
@@ -140,7 +366,7 @@ def parse_command(text):
 
         "remove this song",
 
-        "Five"
+        "five"
 
     ]:
 
@@ -153,7 +379,9 @@ def parse_command(text):
         )
 
 
-    # DELETE LIST
+    # ====================================
+    # DELETE ENTIRE PLAYLIST
+    # ====================================
 
     if text in [
 
@@ -161,7 +389,7 @@ def parse_command(text):
 
         "clear playlist",
 
-        "Six"
+        "six"
 
     ]:
 
@@ -174,7 +402,9 @@ def parse_command(text):
         )
 
 
-    # STOP
+    # ====================================
+    # STOP PLAYBACK
+    # ====================================
 
     if text in [
 
@@ -182,7 +412,7 @@ def parse_command(text):
 
         "stop song",
 
-        "Seven"
+        "seven"
 
     ]:
 
@@ -195,6 +425,10 @@ def parse_command(text):
         )
 
 
+    # ====================================
+    # UNKNOWN COMMAND
+    # ====================================
+
     return (
 
         "UNKNOWN",
@@ -202,3 +436,4 @@ def parse_command(text):
         text
 
     )
+

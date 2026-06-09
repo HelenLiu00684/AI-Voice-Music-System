@@ -11,29 +11,19 @@ import state
 serial_lock = threading.Lock()
 
 from voice import listen
-
 from command_parser import parse_command
 
 from playlist import (
-
     add_song,
-
     load_list,
-
     delete_song,
-
     clear_list
-
 )
 
 from semantic_ai import analyze_text
-
 from query_builder import build_query
-
 from ai_query import search
-
 from rhythm import analyze_energy
-
 from led_engine import drive_led
 
 from music import (
@@ -46,34 +36,31 @@ from music import (
 # ============================================
 # DOWNLOAD AUDIO
 # ============================================
-#
-# Download audio-only content from YouTube.
-#
-# Audio files are temporarily stored inside:
-#
-#     temp/
-#
-# ============================================
 
 def download_audio(title):
+
+    """
+    Download audio-only content from YouTube.
+
+    Input:
+        title:
+            Song title or YouTube search text.
+
+    Output:
+        filepath:
+            Local downloaded audio file path.
+
+        None:
+            Returned if download fails.
+    """
 
     os.makedirs("temp", exist_ok=True)
 
     ydl_opts = {
-
-        # audio only
         "format": "bestaudio[ext=m4a]/bestaudio",
-
-        # output filename
         "outtmpl": "temp/%(id)s.%(ext)s",
-
-        # reduce console spam
         "quiet": True,
-
-        # avoid playlist extraction
         "noplaylist": True,
-
-        # search only first result
         "default_search": "ytsearch1"
     }
 
@@ -82,9 +69,7 @@ def download_audio(title):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
             info = ydl.extract_info(
-
                 title,
-
                 download=True
             )
 
@@ -97,7 +82,6 @@ def download_audio(title):
     except Exception as e:
 
         print("\nDownload failed")
-
         print(e)
 
         return None
@@ -106,121 +90,43 @@ def download_audio(title):
 # ============================================
 # PLAY SONG
 # ============================================
-#
-# Full playback pipeline:
-#
-# download
-#     →
-# analyze energy
-#     →
-# start LED thread
-#     →
-# play music
-#
-# ============================================
-
-
-
-# def play_song(title, ser):
-
-#     print("\nNow Playing:")
-#     print(title)
-
-#     # ==========================
-#     # download audio
-#     # ==========================
-
-#     filepath = download_audio(
-#         title
-#     )
-#     print("DOWNLOAD OK")
-#     if not filepath:
-
-#         print(
-#             "\nDownload failed"
-#         )
-
-#         return
-
-#     # ==========================
-#     # analyze energy
-#     # ==========================
-
-#     energy_list = analyze_energy(
-#         filepath
-#     )
-
-#     print("ENERGY ANALYSIS OK")
-
-#     print(
-#         "ENERGY COUNT:",
-#         len(energy_list)
-#     )
-#     # ==========================
-#     # start LED thread
-#     # ==========================
-#     print("START LED THREAD")
-
-#     state.led_running = True
-
-#     led_thread = threading.Thread(
-
-#         target=drive_led,
-
-#         args=(
-#             energy_list,
-#             ser
-#         )
-
-#     )
-
-#     led_thread.start()
-
-#     # ==========================
-#     # notify Arduino
-#     # ==========================
-
-#     ser.write(
-#         b'M'
-#     )
-
-#     # ==========================
-#     # blocking playback
-#     # returns when:
-#     #
-#     # 1 natural finish
-#     # 2 player.stop()
-#     #
-#     # ==========================
-
-#     play(
-
-#         state.player,
-
-#         filepath
-
-#     )
-
-#     # ==========================
-#     # cleanup
-#     # ==========================
-
-#     ser.write(
-#         b'S'
-#     )
-
-#     time.sleep(
-#         0.2
-#     )
-
-#     print(
-#         "\nMusic finished"
-#     )
-
-
-
 
 def play_song(title, ser):
+
+    """
+    Full playback pipeline.
+
+    Input:
+        title:
+            Song title selected from search
+            results or playlist.
+
+        ser:
+            Active serial connection to Arduino.
+
+    Processing Flow:
+        title
+          ↓
+        download audio
+          ↓
+        analyze audio energy
+          ↓
+        start LED thread
+          ↓
+        notify Arduino music started
+          ↓
+        play music
+          ↓
+        cleanup LED / Arduino state
+
+    Output:
+        No return value.
+
+    Design Notes:
+        This function blocks during playback.
+        It returns when the song naturally
+        finishes or playback is interrupted.
+    """
 
     print("\nNow Playing:")
     print(title)
@@ -248,22 +154,17 @@ def play_song(title, ser):
 
     print("START LED THREAD")
 
-    state.led_running=True
+    state.led_running = True
 
     led_thread = threading.Thread(
 
         target=drive_led,
 
         args=(
-
             energy_list,
-
             ser,
-
             serial_lock
-
         )
-
     )
 
     led_thread.start()
@@ -275,16 +176,11 @@ def play_song(title, ser):
         )
 
     play(
-
         state.player,
-
         filepath
-
     )
 
-    # cleanup
-
-    state.led_running=False
+    state.led_running = False
 
     with serial_lock:
 
@@ -304,91 +200,53 @@ def play_song(title, ser):
 # ============================================
 # SERIAL LISTENER
 # ============================================
-#
-# Listen for Arduino interrupt events.
-#
-# Example:
-#
-# MIC
-#     →
-# stop playback
-#     →
-# reopen microphone
-#
-# ============================================
-
-
-# def serial_listener(ser):
-
-#     while True:
-
-#         try:
-
-#             line=(
-
-#                 ser.readline()
-
-#                 .decode()
-
-#                 .strip()
-
-#             )
-
-#             if line=="MIC":
-
-#                 print(
-#                     "\nMIC interrupt received"
-#                 )
-
-#                 # immediately stop playback
-
-#                 stop(
-#                     state.player
-#                 )
-
-#                 # request microphone reopen
-
-#                 if not state.listen_requested:
-
-#                     state.listen_requested=True
-
-
-#         except Exception as e:
-
-#             print(
-#                 "\nSerial listener error"
-#             )
-
-#             print(e)
-
 
 def serial_listener(ser):
+
+    """
+    Listen for Arduino serial events.
+
+    Input:
+        ser:
+            Active serial connection.
+
+    Expected Arduino Input:
+        "MIC"
+
+    Behavior:
+        When MIC is received:
+
+            stop LED
+              ↓
+            stop playback
+              ↓
+            request microphone reopen
+
+    Output:
+        No return value.
+
+    Design Notes:
+        This function runs in a daemon
+        thread and listens continuously.
+    """
 
     while True:
 
         try:
 
-            line=(
-
+            line = (
                 ser.readline()
-
                 .decode()
-
                 .strip()
-
             )
 
-            if line=="MIC":
+            if line == "MIC":
 
                 print(
                     "\nMIC interrupt received"
                 )
 
-                # stop LED immediately
-
-                state.led_running=False
-
-                # stop music
+                state.led_running = False
 
                 stop(
                     state.player
@@ -396,8 +254,7 @@ def serial_listener(ser):
 
                 if not state.listen_requested:
 
-                    state.listen_requested=True
-
+                    state.listen_requested = True
 
         except Exception as e:
 
@@ -408,12 +265,39 @@ def serial_listener(ser):
             print(e)
 
 
-
 # ============================================
 # MAIN SYSTEM LOOP
 # ============================================
 
 def main():
+
+    """
+    Main event-driven state machine.
+
+    Responsibilities:
+        - initialize player
+        - open serial connection
+        - start serial listener thread
+        - capture voice commands
+        - dispatch command actions
+        - manage playlist/search modes
+        - run AI semantic search
+        - coordinate playback and LED state
+
+    Main Flow:
+        Voice Input
+            ↓
+        Command Parser
+            ↓
+        Command Dispatch
+            ↓
+        State Update
+            ↓
+        Functional Modules
+
+    Output:
+        No return value.
+    """
 
     print("\n==========================")
     print(" AI Voice Music System ")
@@ -430,13 +314,10 @@ def main():
     # ====================================
 
     ser = serial.Serial(
-
         "COM3",
-
         115200
     )
 
-    # allow Arduino reset
     time.sleep(2)
 
     # ====================================
@@ -444,13 +325,9 @@ def main():
     # ====================================
 
     threading.Thread(
-
         target=serial_listener,
-
         args=(ser,),
-
         daemon=True
-
     ).start()
 
     # ====================================
@@ -458,9 +335,6 @@ def main():
     # ====================================
 
     while True:
-
-
-
 
         # ====================================
         # WAIT FOR LISTEN REQUEST
@@ -472,18 +346,15 @@ def main():
 
             continue
 
-
         # ====================================
         # RESET STATES
         # ====================================
 
-        state.listen_requested=False
-
-        state.is_stopped=False
-
+        state.listen_requested = False
+        state.is_stopped = False
 
         # ====================================
-        # MICROPHONE
+        # MICROPHONE INPUT
         # ====================================
 
         print(
@@ -492,7 +363,7 @@ def main():
 
         try:
 
-            text=listen()
+            text = listen()
 
         except Exception:
 
@@ -500,80 +371,82 @@ def main():
                 "\nListen timeout"
             )
 
-            state.listen_requested=True
+            state.listen_requested = True
 
             continue
-
 
         if not text:
 
-            state.listen_requested=True
+            state.listen_requested = True
 
             continue
 
-
-        print(
-            "You said:"
-        )
-
-        print(
-            text
-        )
-
+        print("You said:")
+        print(text)
 
         # ====================================
         # COMMAND PARSER
         # ====================================
+        #
+        # Input:
+        #     text:
+        #         Raw recognized speech.
+        #
+        # Output:
+        #     cmd:
+        #         Normalized command type.
+        #
+        #     arg:
+        #         Optional command argument.
+        #
+        # Example:
+        #
+        #     "search Taylor Swift"
+        #
+        #         ↓
+        #
+        #     cmd = "SEARCH"
+        #     arg = "Taylor Swift"
+        #
+        # ====================================
 
-        cmd,arg=(
-
-            parse_command(
-                text
-            )
-
+        cmd, arg = parse_command(
+            text
         )
 
         print(
-
             "\nCOMMAND:",
-
             cmd
-
         )
 
-
         # ====================================
-        # SAVE
+        # SAVE CURRENT SONG
         # ====================================
 
-        if cmd=="SAVE":
+        if cmd == "SAVE":
 
             if state.current_song:
 
                 add_song(
-
                     state.current_song,
-
                     state.current_url
-
                 )
 
                 print(
                     "\nSong saved"
                 )
 
-            state.listen_requested=True
+            state.listen_requested = True
 
             continue
 
-
         # ====================================
-        # PLAY LIST
+        # PLAY PLAYLIST
         # ====================================
 
-        if cmd=="PLAYLIST":
+        if cmd == "PLAYLIST":
 
-            songs=load_list()
+            songs = load_list()
 
             if not songs:
 
@@ -581,71 +454,53 @@ def main():
                     "\nPlaylist empty"
                 )
 
-                state.listen_requested=True
+                state.listen_requested = True
 
                 continue
 
-            state.play_mode="PLAYLIST"
+            state.play_mode = "PLAYLIST"
+            state.playlist = songs
+            state.playlist_index = 0
 
-            state.playlist=songs
+            song = songs[0]
 
-            state.playlist_index=0
-
-            song=songs[0]
-
-            state.current_song=(
-
-                song["title"]
-
-            )
-
-            state.current_url=(
-
-                song["url"]
-
-            )
+            state.current_song = song["title"]
+            state.current_url = song["url"]
 
             play_song(
-
                 state.current_song,
-
                 ser
-
             )
 
-            state.listen_requested=True
+            state.listen_requested = True
 
             continue
 
-
         # ====================================
-        # DELETE SONG
+        # DELETE CURRENT SONG
         # ====================================
 
-        if cmd=="DELETE_SONG":
+        if cmd == "DELETE_SONG":
 
             if state.current_song:
 
                 delete_song(
-
                     state.current_song
-
                 )
 
                 print(
                     "\nSong deleted"
                 )
 
-            state.listen_requested=True
+            state.listen_requested = True
 
             continue
 
-
         # ====================================
-        # DELETE LIST
+        # DELETE ENTIRE PLAYLIST
         # ====================================
 
-        if cmd=="DELETE_LIST":
+        if cmd == "DELETE_LIST":
 
             clear_list()
 
@@ -653,241 +508,292 @@ def main():
                 "\nPlaylist deleted"
             )
 
-            state.listen_requested=True
+            state.listen_requested = True
 
             continue
 
+        # ====================================
+        # STOP PLAYBACK
+        # ====================================
+
+        if cmd == "STOP":
+
+            state.led_running = False
+
+            stop(
+                state.player
+            )
+
+            print(
+                "\nPlayback stopped"
+            )
+
+            state.listen_requested = True
+
+            continue
 
         # ====================================
-        # NEXT
+        # UNKNOWN COMMAND
         # ====================================
 
-        if cmd=="NEXT":
+        if cmd == "UNKNOWN":
 
-            if state.play_mode=="PLAYLIST":
+            print(
+                "\nUnknown command"
+            )
 
-                state.playlist_index+=1
+            state.listen_requested = True
+
+            continue
+
+        # ====================================
+        # NEXT SONG
+        # ====================================
+
+        if cmd == "NEXT":
+
+            # -------------------------
+            # PLAYLIST MODE
+            # -------------------------
+
+            if state.play_mode == "PLAYLIST":
+
+                state.playlist_index += 1
 
                 if (
-
                     state.playlist_index
-
                     >=
-
-                    len(
-
-                        state.playlist
-
-                    )
-
+                    len(state.playlist)
                 ):
 
                     print(
                         "\nPlaylist finished"
                     )
 
-                    state.listen_requested=True
+                    state.listen_requested = True
 
                     continue
 
-                song=(
+                song = state.playlist[
+                    state.playlist_index
+                ]
 
-                    state.playlist[
-
-                        state.playlist_index
-
-                    ]
-
-                )
-
-                state.current_song=(
-
-                    song["title"]
-
-                )
-
-                state.current_url=(
-
-                    song["url"]
-
-                )
+                state.current_song = song["title"]
+                state.current_url = song["url"]
 
                 play_song(
-
                     state.current_song,
-
                     ser
-
                 )
 
-                state.listen_requested=True
+                state.listen_requested = True
 
                 continue
 
+            # -------------------------
+            # SEARCH MODE
+            # -------------------------
 
-            if state.play_mode=="SEARCH":
+            if state.play_mode == "SEARCH":
 
-                state.search_index+=1
+                state.search_index += 1
 
                 if (
-
                     state.search_index
-
                     >=
-
-                    len(
-
-                        state.search_results
-
-                    )
-
+                    len(state.search_results)
                 ):
 
                     print(
                         "\nSearching more..."
                     )
 
-                    state.search_results=(
-
-                        search(
-
-                            state.last_query
-
-                        )
-
+                    state.search_results = search(
+                        state.last_query
                     )
 
-                    state.search_index=0
+                    state.search_index = 0
 
                     if not state.search_results:
 
-                        state.listen_requested=True
+                        state.listen_requested = True
 
                         continue
 
+                url, title = state.search_results[
+                    state.search_index
+                ]
 
-                url,title=(
-
-                    state.search_results[
-
-                        state.search_index
-
-                    ]
-
-                )
-
-                state.current_song=title
-
-                state.current_url=url
+                state.current_song = title
+                state.current_url = url
 
                 play_song(
-
                     title,
-
                     ser
-
                 )
 
-                state.listen_requested=True
+                state.listen_requested = True
 
                 continue
-
 
             print(
                 "\nNothing to skip"
             )
 
-            state.listen_requested=True
+            state.listen_requested = True
 
             continue
 
-
         # ====================================
-        # BUILD QUERY
+        # AI SEMANTIC SEARCH
+        # ====================================
+        #
+        # Input:
+        #     arg:
+        #         Raw search request extracted
+        #         by the command parser.
+        #
+        # Examples:
+        #     search Taylor Swift
+        #     search FIFA 2026
+        #     search the Shakira FIFA song
+        #
+        # Processing Flow:
+        #     Raw Query
+        #          ↓
+        #     Semantic AI
+        #          ↓
+        #     Structured JSON
+        #          ↓
+        #     Query Builder
+        #          ↓
+        #     Optimized Search Query
+        #          ↓
+        #     YouTube Search
+        #
+        # Output:
+        #     query:
+        #         Final optimized keyword
+        #         string used for retrieval.
+        #
         # ====================================
 
-        if cmd=="SEARCH":
-
-            query=arg
-
-        else:
+        if cmd == "SEARCH":
 
             print(
                 "\nAI semantic parsing...\n"
             )
 
-            ai_result=(
+            print(
+                "Original Query:"
+            )
 
-                analyze_text(
-                    text
-                )
+            print(
+                arg
+            )
 
+            ai_result = analyze_text(
+                arg
             )
 
             if not ai_result:
 
-                state.listen_requested=True
+                print(
+                    "\nSemantic parsing failed"
+                )
+
+                state.listen_requested = True
 
                 continue
 
-            query=(
-
-                build_query(
-                    ai_result
-                )
-
+            print(
+                "\nAI Semantic Result:"
             )
 
+            print(
+                ai_result
+            )
 
-        # ====================================
-        # SEARCH
-        # ====================================
+            query = build_query(
+                ai_result
+            )
 
-        results=(
+            print(
+                "\nOptimized Search Query:"
+            )
 
-            search(
+            print(
                 query
             )
 
+        else:
+
+            state.listen_requested = True
+
+            continue
+
+        # ====================================
+        # YOUTUBE SEARCH
+        # ====================================
+        #
+        # Input:
+        #     query:
+        #         Optimized keyword string.
+        #
+        # Output:
+        #     results:
+        #         [
+        #             (
+        #                 url,
+        #                 title
+        #             ),
+        #             ...
+        #         ]
+        #
+        # ====================================
+
+        results = search(
+            query
         )
 
         if not results:
 
-            state.listen_requested=True
+            print(
+                "\nNo search results found."
+            )
+
+            state.listen_requested = True
 
             continue
 
+        # ====================================
+        # STORE SEARCH STATE
+        # ====================================
 
-        state.play_mode="SEARCH"
+        state.play_mode = "SEARCH"
+        state.search_results = results
+        state.search_index = 0
+        state.last_query = query
 
-        state.search_results=results
+        # ====================================
+        # SELECT FIRST SEARCH RESULT
+        # ====================================
 
-        state.search_index=0
+        url, title = results[0]
 
-        state.last_query=query
+        state.current_song = title
+        state.current_url = url
 
-
-        url,title=(
-
-            results[0]
-
-        )
-
-        state.current_song=title
-
-        state.current_url=url
-
+        # ====================================
+        # PLAY SELECTED SONG
+        # ====================================
 
         play_song(
-
             title,
-
             ser
-
         )
 
-        state.listen_requested=True
-
+        state.listen_requested = True
 
 
 # ============================================

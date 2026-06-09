@@ -1,0 +1,22 @@
+warning: in the working copy of 'ai_query.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'music.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'playlist.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'state.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'voice.py', LF will be replaced by CRLF the next time Git touches it
+ README.md                          | 861 [32m+++++++++++++++++++++++++++[m[31m----------[m
+ ai_query.py                        | 165 [32m+++++[m[31m--[m
+ arduino_led/arduino_led.ino        |  80 [31m----[m
+ arduino_led/arduino_led_backup.txt | 269 [31m------------[m
+ arduino_led/requirements.txt       |   1 [31m-[m
+ command_parser.py                  | 285 [32m++++++++++[m[31m--[m
+ led_engine.py                      | 237 [32m+++++++++[m[31m-[m
+ main.py                            | 734 [32m++++++++++++++[m[31m-----------------[m
+ music.py                           | 147 [32m++++++[m[31m-[m
+ playlist.py                        | 161 [32m++++++[m[31m-[m
+ query_builder.py                   | 172 [32m++++++[m[31m--[m
+ rhythm.py                          | 196 [32m+++++++[m[31m--[m
+ semantic_ai.py                     | 235 [32m++++++++[m[31m--[m
+ state.py                           | 173 [32m+++++++[m[31m-[m
+ voice.py                           | 187 [32m+++++++[m[31m-[m
+ 15 files changed, 2749 insertions(+), 1154 deletions(-)
